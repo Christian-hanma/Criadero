@@ -327,7 +327,7 @@ td{padding:11px 14px;font-size:0.85rem;color:var(--text2);vertical-align:middle}
           <span>Propietario</span>
           <strong id="hdr-prop-txt">—</strong>
         </div>
-        <button class="logout-btn" onclick="doLogout()">⬡ Cerrar sesión</button>
+
       </div>
     </div>
     <div class="strip" id="stats-strip">
@@ -349,6 +349,7 @@ td{padding:11px 14px;font-size:0.85rem;color:var(--text2);vertical-align:middle}
     <button class="nbtn" data-tab="simulacion" onclick="goTab('simulacion')"><span class="ni">⬡</span> Simulación Cruza</button>
     <button class="nbtn" data-tab="pedigree" onclick="goTab('pedigree')"><span class="ni">⌘</span> Árbol Genealógico</button>
     <button class="nbtn" data-tab="config" onclick="goTab('config')"><span class="ni">⚙</span> Configuración</button>
+    <button class="nbtn" style="margin-left:auto;color:#FCA5A5;border-left:1px solid var(--borde)" onclick="doLogout()"><span class="ni">⏻</span> Cerrar sesión</button>
   </nav>
 
   <!-- MAIN -->
@@ -545,7 +546,7 @@ td{padding:11px 14px;font-size:0.85rem;color:var(--text2);vertical-align:middle}
 </div><!-- /app -->
 
 <!-- ── MODAL PERRO ──────────────────────────────────────────────────────────── -->
-<div class="overlay" id="modal-perro">
+<div class="overlay" id="modal-perro" onclick="if(event.target===this)closeModal('perro')">
   <div class="modal" onclick="event.stopPropagation()">
     <div class="mh"><div class="mt" id="modal-perro-title">🐾 Registrar Ejemplar</div><button class="mc" onclick="closeModal('perro')">✕</button></div>
     <div class="mb">
@@ -598,7 +599,7 @@ td{padding:11px 14px;font-size:0.85rem;color:var(--text2);vertical-align:middle}
 </div>
 
 <!-- ── MODAL CAMADA ─────────────────────────────────────────────────────────── -->
-<div class="overlay" id="modal-camada">
+<div class="overlay" id="modal-camada" onclick="if(event.target===this)closeModal('camada')">
   <div class="modal" onclick="event.stopPropagation()">
     <div class="mh"><div class="mt" id="modal-camada-title">🐶 Registrar Camada</div><button class="mc" onclick="closeModal('camada')">✕</button></div>
     <div class="mb"><div class="fg">
@@ -619,7 +620,7 @@ td{padding:11px 14px;font-size:0.85rem;color:var(--text2);vertical-align:middle}
 </div>
 
 <!-- ── MODAL VACUNA ──────────────────────────────────────────────────────────── -->
-<div class="overlay" id="modal-vacuna">
+<div class="overlay" id="modal-vacuna" onclick="if(event.target===this)closeModal('vacuna')">
   <div class="modal" onclick="event.stopPropagation()">
     <div class="mh"><div class="mt" id="modal-vacuna-title">💉 Registrar Vacuna</div><button class="mc" onclick="closeModal('vacuna')">✕</button></div>
     <div class="mb"><div class="fg">
@@ -694,6 +695,14 @@ function getVacunas() { return ls('vacunas') || []; }
 function getCfg()     { return ls('cfg') || {}; }
 
 // ─── LOGIN / LOGOUT ───────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function(){
+  // Setup modal overlay close on background click
+  ['perro','camada','vacuna'].forEach(tipo=>{
+    const el = document.getElementById('modal-'+tipo);
+    if(el) el.addEventListener('click', function(e){ if(e.target===this) closeModal(tipo); });
+  });
+});
+
 document.getElementById('login-logo-img').src = LOGO_SRC;
 document.getElementById('hdr-logo-img').src   = LOGO_SRC;
 
@@ -843,26 +852,34 @@ function renderPlantel(){
     c.innerHTML = '<div class="empty"><div class="empty-i">🐾</div><p>Sin ejemplares. ¡Registre el primero!</p></div>';
     return;
   }
-  c.innerHTML = '<div class="tw"><table><thead><tr><th>Foto</th><th>Nombre</th><th>Sexo</th><th>Color</th><th>Estado</th><th>Nacimiento</th><th>Padre</th><th>Madre</th><th>Acciones</th></tr></thead><tbody>'
-    + filt.map(d=>{
-        const padre = pp.find(p=>p.id===d.idPadre);
-        const madre = pp.find(p=>p.id===d.idMadre);
-        return '<tr>'
-          + '<td>'+avHTML(d.foto,40)+'</td>'
-          + '<td><div style="font-family:\'Cormorant Garamond\',serif;font-weight:700;font-size:.92rem;color:var(--crema)">'+escH(d.nombre)+'</div>'+(d.obs?'<div style="font-size:.62rem;color:var(--oro4);font-style:italic">'+escH(d.obs)+'</div>':'')+'</td>'
-          + '<td>'+sexBadge(d.sexo)+'</td>'
-          + '<td style="font-size:.82rem">'+escH(d.color||'—')+'</td>'
-          + '<td>'+stateBadge(d.estado)+'</td>'
-          + '<td style="font-size:.78rem;color:var(--g1)">'+fd(d.nac)+'</td>'
-          + '<td style="font-size:.78rem;color:var(--g1)">'+escH(padre?.nombre||'—')+'</td>'
-          + '<td style="font-size:.78rem;color:var(--g1)">'+escH(madre?.nombre||'—')+'</td>'
-          + '<td><div style="display:flex;gap:4px">'
-          + '<button class="btn bo bsm" onclick="abrirEditPerro(\''+d.id+'\')">✏️ Editar</button>'
-          + '<button class="btn bg2 bsm" onclick="verPed(\''+d.id+'\')">🌳</button>'
-          + '<button class="btn bd bsm" onclick="delPerro(\''+d.id+'\')">🗑️</button>'
-          + '</div></td></tr>';
-      }).join('')
-    + '</tbody></table></div>';
+  const rows = filt.map(d=>{
+    const padre = pp.find(p=>p.id===d.idPadre);
+    const madre = pp.find(p=>p.id===d.idMadre);
+    return '<tr data-id="'+escH(d.id)+'">'
+      + '<td>'+avHTML(d.foto,40)+'</td>'
+      + '<td><div style="font-family:'Cormorant Garamond',serif;font-weight:700;font-size:.92rem;color:var(--crema)">'+escH(d.nombre)+'</div>'+(d.obs?'<div style="font-size:.62rem;color:var(--oro4);font-style:italic">'+escH(d.obs)+'</div>':'')+'</td>'
+      + '<td>'+sexBadge(d.sexo)+'</td>'
+      + '<td style="font-size:.82rem">'+escH(d.color||'—')+'</td>'
+      + '<td>'+stateBadge(d.estado)+'</td>'
+      + '<td style="font-size:.78rem;color:var(--g1)">'+fd(d.nac)+'</td>'
+      + '<td style="font-size:.78rem;color:var(--g1)">'+escH(padre?.nombre||'—')+'</td>'
+      + '<td style="font-size:.78rem;color:var(--g1)">'+escH(madre?.nombre||'—')+'</td>'
+      + '<td><div style="display:flex;gap:4px">'
+      + '<button class="btn bo bsm" data-action="edit-perro" data-id="'+escH(d.id)+'">✏️ Editar</button>'
+      + '<button class="btn bg2 bsm" data-action="ped-perro" data-id="'+escH(d.id)+'">🌳</button>'
+      + '<button class="btn bd bsm" data-action="del-perro" data-id="'+escH(d.id)+'">🗑️</button>'
+      + '</div></td></tr>';
+  }).join('');
+  c.innerHTML = '<div class="tw"><table><thead><tr><th>Foto</th><th>Nombre</th><th>Sexo</th><th>Color</th><th>Estado</th><th>Nacimiento</th><th>Padre</th><th>Madre</th><th>Acciones</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  // Attach events via delegation
+  c.querySelectorAll('button[data-action]').forEach(btn=>{
+    btn.addEventListener('click', function(){
+      const id = this.dataset.id, action = this.dataset.action;
+      if(action==='edit-perro') abrirEditPerro(id);
+      if(action==='ped-perro')  verPed(id);
+      if(action==='del-perro')  delPerro(id);
+    });
+  });
 }
 
 function verPed(id){
@@ -989,24 +1006,30 @@ function renderCamadas(){
     c.innerHTML = '<div class="empty"><div class="empty-i">🐶</div><p>Sin camadas registradas.</p></div>';
     return;
   }
-  c.innerHTML = '<div class="tw"><table><thead><tr><th>Cruce</th><th>F. Cruce</th><th>F. Nacimiento</th><th>Total</th><th>Machos</th><th>Hembras</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>'
-    + cc.map(cam=>{
-        const pa = pp.find(p=>p.id===cam.idPadre);
-        const ma = pp.find(p=>p.id===cam.idMadre);
-        return '<tr>'
-          + '<td><div style="font-family:\'Cormorant Garamond\',serif;font-weight:700;color:var(--crema);font-size:.9rem">'+escH((pa?.nombre||'—')+' × '+(ma?.nombre||'—'))+'</div>'+(cam.obs?'<div style="font-size:.65rem;color:var(--g2)">'+escH(cam.obs)+'</div>':'')+'</td>'
-          + '<td>'+fd(cam.fechaCruce)+'</td>'
-          + '<td>'+fd(cam.fechaNac)+'</td>'
-          + '<td>'+badge(cam.total||'?','boro')+'</td>'
-          + '<td style="font-size:.85rem">'+(cam.machos||'—')+'</td>'
-          + '<td style="font-size:.85rem">'+(cam.hembras||'—')+'</td>'
-          + '<td>'+(cam.estado==='Completada'?badge('Completada','bact'):badge(cam.estado||'En curso','boro'))+'</td>'
-          + '<td><div style="display:flex;gap:4px">'
-          + '<button class="btn bo bsm" onclick="abrirEditCamada(\''+cam.id+'\')">✏️ Editar</button>'
-          + '<button class="btn bd bsm" onclick="delCamada(\''+cam.id+'\')">🗑️</button>'
-          + '</div></td></tr>';
-      }).join('')
-    + '</tbody></table></div>';
+  const camRows = cc.map(cam=>{
+    const pa = pp.find(p=>p.id===cam.idPadre);
+    const ma = pp.find(p=>p.id===cam.idMadre);
+    return '<tr>'
+      + '<td><div style="font-family:'Cormorant Garamond',serif;font-weight:700;color:var(--crema);font-size:.9rem">'+escH((pa?.nombre||'—')+' × '+(ma?.nombre||'—'))+'</div>'+(cam.obs?'<div style="font-size:.65rem;color:var(--g2)">'+escH(cam.obs)+'</div>':'')+'</td>'
+      + '<td>'+fd(cam.fechaCruce)+'</td>'
+      + '<td>'+fd(cam.fechaNac)+'</td>'
+      + '<td>'+badge(cam.total||'?','boro')+'</td>'
+      + '<td style="font-size:.85rem">'+(cam.machos||'—')+'</td>'
+      + '<td style="font-size:.85rem">'+(cam.hembras||'—')+'</td>'
+      + '<td>'+(cam.estado==='Completada'?badge('Completada','bact'):badge(cam.estado||'En curso','boro'))+'</td>'
+      + '<td><div style="display:flex;gap:4px">'
+      + '<button class="btn bo bsm" data-action="edit-cam" data-id="'+escH(cam.id)+'">✏️ Editar</button>'
+      + '<button class="btn bd bsm" data-action="del-cam" data-id="'+escH(cam.id)+'">🗑️</button>'
+      + '</div></td></tr>';
+  }).join('');
+  c.innerHTML = '<div class="tw"><table><thead><tr><th>Cruce</th><th>F. Cruce</th><th>F. Nacimiento</th><th>Total</th><th>Machos</th><th>Hembras</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>'+camRows+'</tbody></table></div>';
+  c.querySelectorAll('button[data-action]').forEach(btn=>{
+    btn.addEventListener('click', function(){
+      const id=this.dataset.id, action=this.dataset.action;
+      if(action==='edit-cam') abrirEditCamada(id);
+      if(action==='del-cam')  delCamada(id);
+    });
+  });
 }
 
 function populateCamSelects(){
@@ -1095,22 +1118,28 @@ function renderVacunas(){
     c.innerHTML = '<div class="empty"><div class="empty-i">💉</div><p>Sin vacunas registradas.</p></div>';
     return;
   }
-  c.innerHTML = '<div class="tw"><table><thead><tr><th>Ejemplar</th><th>Vacuna</th><th>Aplicación</th><th>Próxima dosis</th><th>Veterinario</th><th>Acciones</th></tr></thead><tbody>'
-    + vv.map(v=>{
-        const p = pp.find(x=>x.id===v.idPerro);
-        const al = alts.some(a=>a.id===v.id);
-        return '<tr style="'+(al?'background:rgba(239,68,68,0.04)':'')+'">'
-          + '<td><div style="font-family:\'Cormorant Garamond\',serif;font-weight:700;color:var(--crema);font-size:.88rem">'+escH(p?.nombre||'—')+'</div></td>'
-          + '<td>'+badge(v.vacuna,'boro')+'</td>'
-          + '<td>'+fd(v.fecha)+'</td>'
-          + '<td>'+(al?badge('⚠ '+fd(v.proxima),'balert'):badge(fd(v.proxima),'bact'))+'</td>'
-          + '<td style="font-size:.82rem">'+escH(v.vet||'—')+'</td>'
-          + '<td><div style="display:flex;gap:4px">'
-          + '<button class="btn bo bsm" onclick="abrirEditVacuna(\''+v.id+'\')">✏️ Editar</button>'
-          + '<button class="btn bd bsm" onclick="delVacuna(\''+v.id+'\')">🗑️</button>'
-          + '</div></td></tr>';
-      }).join('')
-    + '</tbody></table></div>';
+  const vacRows = vv.map(v=>{
+    const p = pp.find(x=>x.id===v.idPerro);
+    const al = alts.some(a=>a.id===v.id);
+    return '<tr style="'+(al?'background:rgba(239,68,68,0.04)':'')+'">'
+      + '<td><div style="font-family:'Cormorant Garamond',serif;font-weight:700;color:var(--crema);font-size:.88rem">'+escH(p?.nombre||'—')+'</div></td>'
+      + '<td>'+badge(v.vacuna,'boro')+'</td>'
+      + '<td>'+fd(v.fecha)+'</td>'
+      + '<td>'+(al?badge('⚠ '+fd(v.proxima),'balert'):badge(fd(v.proxima),'bact'))+'</td>'
+      + '<td style="font-size:.82rem">'+escH(v.vet||'—')+'</td>'
+      + '<td><div style="display:flex;gap:4px">'
+      + '<button class="btn bo bsm" data-action="edit-vac" data-id="'+escH(v.id)+'">✏️ Editar</button>'
+      + '<button class="btn bd bsm" data-action="del-vac" data-id="'+escH(v.id)+'">🗑️</button>'
+      + '</div></td></tr>';
+  }).join('');
+  c.innerHTML = '<div class="tw"><table><thead><tr><th>Ejemplar</th><th>Vacuna</th><th>Aplicación</th><th>Próxima dosis</th><th>Veterinario</th><th>Acciones</th></tr></thead><tbody>'+vacRows+'</tbody></table></div>';
+  c.querySelectorAll('button[data-action]').forEach(btn=>{
+    btn.addEventListener('click', function(){
+      const id=this.dataset.id, action=this.dataset.action;
+      if(action==='edit-vac') abrirEditVacuna(id);
+      if(action==='del-vac')  delVacuna(id);
+    });
+  });
 }
 
 function populateVacSelect(){
